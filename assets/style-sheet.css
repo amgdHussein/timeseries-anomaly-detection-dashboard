@@ -1,0 +1,89 @@
+@font-face {
+    font-family: 'Sucrose Bold Two';
+    src: url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/4273/sucrose.woff2') format('woff2');
+}
+
+
+body {
+  background-color: white;
+  margin: 5%;
+}
+
+.banner_tsa { 
+    color: black;
+    padding-top: 0%;
+    background-size: cover;
+    border-radius: 0.5em;
+}
+.titel_tsa { 
+    font-family: 'Sucrose Bold Two';
+    font-size: 8vw;
+    line-height: 0.9;
+    text-align: left;
+} 
+.title_st {
+    font-size: 4vw;
+    display: block;
+} 
+
+.card-display {
+  background-color: #111111;
+  align-items: center;
+  border-radius: 15px;
+  margin: 10px;
+  padding: 15px;
+  position: relative;
+  box-shadow: 2px 2px 2px 2px #1f2c56;
+}
+
+.create_container {
+  margin: 0 auto;
+  display: flex;
+}
+#mainContainer {
+  flex-direction: column;
+}
+
+.slider {
+  margin: 0 auto;
+  padding: 5px;
+  width: calc(100%-40px);
+}
+
+.label-control {
+    font-size: 1.4vw;
+    color:white;
+    text-align:center;
+}
+
+.label {
+  font-size: 1.1vw;
+  color:white;
+  padding: 10px;
+  padding-bottom: 0px;
+  padding-top: 10px;
+  margin-left: 5px;
+  width: calc(100%-40px);
+}
+
+.rc-slider-track {
+  background-color: RoyalBlue;
+}
+
+.rc-slider-dot-active {
+  border-color: RoyalBlue;
+  border: solid 2px RoyalBlue;
+}
+
+.rc-slider-handle {
+  background-color: RoyalBlue;
+  border-color: RoyalBlue;
+}
+
+.rc.slider-handle:hover {
+  border-color: RoyalBlue;
+}
+
+.rc.slider-handle-active:active {
+  border-color: RoyalBlue;
+}
