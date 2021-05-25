@@ -118,19 +118,9 @@ class ADetector(object):
             template='plotly_dark',
             showlegend=True,
             title=dict(text=f'{series_name} Streaming', font=dict(size=20)),
-            yaxis=dict(
-                title=self.NAME,
-                # range=[
-                #     min(self.dataframe_predict.y.min(), self.dataframe_forecast.yhat.min()) - 10,
-                #     max(self.dataframe_predict.y.max(), self.dataframe_forecast.yhat.max()) + 10,
-                # ],
-            ),
+            yaxis=dict(title=self.NAME),
             xaxis=dict(
-                title='Data-Time (Day)',
-                # range=[
-                #     min(self.dataframe_predict.ds.min(), self.dataframe_forecast.ds.min()),
-                #     max(self.dataframe_predict.ds.max(), self.dataframe_forecast.ds.max()),
-                # ],
+                title='Date-Time (Day)',
                 rangeselector=dict(
                     buttons=list([
                         dict(count=1, label='1D', step='day', stepmode='backward'),

@@ -1,32 +1,37 @@
 # standard modules
-import pandas as pd
-
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
 from dash.dependencies import Input, Output
 
+import pandas as pd
+from influxdb import DataFrameClient
+
 # custom module
 from anomaly_detection import ADetector
 
-file_name, dataset_name = './data/TRW1MT.csv', 'Reaction Wheel Temperature'
-def load_data(root, parse_time_by=0):
-    series = pd.read_csv(root, parse_dates=[parse_time_by], index_col=[parse_time_by]).asfreq(freq='5T')
-    series = series.iloc[:, :1].resample(rule='D').mean().interpolate(method='linear')
-    series.reset_index(inplace=True)
-    series.columns = ['ds', 'y']
-    return series
-sub_data = lambda df, index: df.iloc[0:index, :]
+host, port = '127.0.0.1', '8086'
+dataset_name = 'Reaction Wheel Temperature'
+db_name = 'sensors_data' 
+retention_policie='rp_temp'
+field_name = 'downsampled_temp'
 
-# load dataset 
-data_train = load_data(root=file_name)
-sample = 40# 1600
-data_updated = sub_data(df=data_train, index=sample)
+
+def get_data(client, retention_policie, field_name):
+    df = client.query(f'SELECT * FROM "{retention_policie}"."{field_name}"')[field_name]
+    df.index = df.index.tz_localize(None)
+    df.reset_index(inplace=True)
+    df.columns = ['ds', 'y']
+    return df
+
+# init connection 
+myclient = DataFrameClient(host=host, port=port, database=db_name)
+dataframe = get_data(client=myclient, retention_policie=retention_policie, field_name=field_name)
 
 # create anomaly detector
 detector = ADetector(name='TRW1MT (C)')
-params = ['W'] #['Y']
-detector.update_model(df=data_updated, params=params)
+params = ['D'] #['Y']
+detector.update_model(df=dataframe, params=params)
 
 # Start the app
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
@@ -61,7 +66,7 @@ app.layout = html.Section([
             dcc.Slider(
                 id='forecast_days_slider',
                 marks={str(days):str(days) for days in [7, 30, 90, 180, 365]},
-                value=30,
+                value=7,
                 included=True,
                 min=7, 
                 max=365, 
@@ -88,7 +93,7 @@ app.layout = html.Section([
             dcc.Interval(
                 id='update_chart', 
                 interval=10000, 
-                n_intervals=sample+1,
+                n_intervals=0,
             ),
             dcc.Graph(
                 id='timeseries', 
@@ -102,15 +107,27 @@ app.layout = html.Section([
     html.Div(className='create_container', children=[
         # histogram
         html.Div(className='four columns card-display', children=[#animate=True
-            dcc.Graph(id='histogram', config=dict(displayModeBar='hover'), figure=detector.hist_plot()),
+            dcc.Graph(
+                id='histogram', 
+                config=dict(displayModeBar='hover'), 
+                figure=detector.hist_plot()
+            ),
         ]),
         # model-components
         html.Div(className='five columns card-display', children=[
-            dcc.Graph(id='seasonal_components', config=dict(displayModeBar='hover'), figure=detector.seasonal_components_plot()),
+            dcc.Graph(
+                id='seasonal_components', 
+                config=dict(displayModeBar='hover'), 
+                figure=detector.seasonal_components_plot(),
+            ),
         ]),
         # error-barchart
         html.Div(className='four columns card-display four columns', children=[
-            dcc.Graph(id='error-barchart', config=dict(displayModeBar='hover'), figure=detector.metric_plot()),
+            dcc.Graph(
+                id='error-barchart', 
+                config=dict(displayModeBar='hover'), 
+                figure=detector.metric_plot(),
+            ),
         ]),
     ]),
 ])
@@ -128,20 +145,20 @@ app.layout = html.Section([
     Input('updating_interval', 'value'),
 )
 def update_graphs(index, period, params, interval):
-    data_updated = sub_data(df=data_train, index=index)
+    dataframe = get_data(client=myclient, retention_policie=retention_policie, field_name=field_name)
 
     # update model
-    days = (data_updated.ds.iloc[-1] - detector.model_init_date).days
+    days = (dataframe.ds.iloc[-1] - detector.model_init_date).days
     if days >= interval or detector.params != params:
-        detector.update_model(df=data_updated, params=params)
-        detector.model_init_date = data_updated.ds.iloc[-1]
+        detector.update_model(df=dataframe, params=params)
+        detector.model_init_date = dataframe.ds.iloc[-1]
 
     # forecast
     if (detector.period != period) or (index >= len(detector.dataframe_forecast)):
         detector.future_dataframe(period=period)
 
     # update streaming data
-    detector.predict_dataframe(series=data_updated)
+    detector.predict_dataframe(series=dataframe)
 
     return [detector.stream_anomaly_plot(series_name=dataset_name), detector.hist_plot(), 
             detector.seasonal_components_plot(), detector.metric_plot()]
@@ -149,3 +166,5 @@ def update_graphs(index, period, params, interval):
 
 if __name__=='__main__':
     app.run_server(host='127.0.0.1', port='8050', debug=False)
+
+
