@@ -1,6 +1,8 @@
-from influxdb import InfluxDBClient
 from .data_loader import load_data
-import os
+from influxdb import InfluxDBClient
+from __init__ import *
+import sys
+sys.path.append('../')
 
 
 def db_exists(client, db_name):
@@ -14,7 +16,7 @@ def daily_sampling(client, db, measurement, field):
     # create retention policies: never delete a data-point,
     # collect other data forever
     client.create_retention_policy(
-        name='rp_temp',
+        name=RETENTION_POLICIE,
         duration='INF',
         replication='2',
         database=db,
@@ -26,43 +28,37 @@ def daily_sampling(client, db, measurement, field):
         name=f'{measurement}_cq',
         select=f'''
             SELECT mean("{field}") AS "{field}_mean"
-            INTO "rp_temp"."downsampled_temp" 
+            INTO "{RETENTION_POLICIE}"."{FIELD_NAME}" 
             FROM "{measurement}"
             GROUP BY time(1d)
         ''',
-        database=db_name,
+        database=DATABASE_NAME,
         resample_opts='EVERY 1d',
     )
 
 
 if __name__ == '__main__':
     # load dataset
-    data_root = os.path.join('database', 'sensors')
-    file_name = 'TRW1MT.csv'
-    wheel_temp = load_data(root=data_root, file_name=file_name)
+    wheel_temp = load_data(root=DATA_ROOT, file_name=FILE_NAME)
 
     # create a database
-    host, port = '127.0.0.1', '8086'
-    db_name = 'sensors_data'
-    measurement_name = 'whell_temperature'
     field_name = wheel_temp.columns[0]
 
     # create a client
-    #username, password
-    myclient = InfluxDBClient(host=host, port=port)
+    myclient = InfluxDBClient(host=DATABASE_HOST, port=DATABASE_PORT)
     print("DB started...")
 
-    # myclient.drop_database(db_name)
-    if not db_exists(client=myclient, db_name=db_name):
-        myclient.create_database(db_name)
+    # myclient.drop_database(DATABASE_NAME)
+    if not db_exists(client=myclient, db_name=DATABASE_NAME):
+        myclient.create_database(DATABASE_NAME)
 
     # note: client.query('use database') does not work...
     myclient.switch_database('sensors_data')
 
     daily_sampling(
         client=myclient,
-        db=db_name,
-        measurement=measurement_name,
+        db=DATABASE_NAME,
+        measurement=MEASUREMENT_NAME,
         field=field_name
     )
 
@@ -70,7 +66,7 @@ if __name__ == '__main__':
     for date, temp in zip(wheel_temp.index, wheel_temp[field_name]):
         json_insert = [
             {
-                'measurement': measurement_name,
+                'measurement': MEASUREMENT_NAME,
                 'time': date,
                 'fields': {
                     field_name: temp
@@ -81,12 +77,12 @@ if __name__ == '__main__':
         # write temperature to db
         myclient.write_points(
             points=json_insert,
-            retention_policy='rp_temp',
+            retention_policy=RETENTION_POLICIE,
             batch_size=7200,
         )
         myclient.query(f'''
             SELECT mean("{field_name}") AS "values"
-            INTO "rp_temp"."downsampled_temp" 
-            FROM "{measurement_name}"
+            INTO "{RETENTION_POLICIE}"."{FIELD_NAME}" 
+            FROM "{MEASUREMENT_NAME}"
             GROUP BY time(1d), *
         ''')

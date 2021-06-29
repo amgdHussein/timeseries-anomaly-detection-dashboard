@@ -9,12 +9,7 @@ from influxdb import DataFrameClient
 
 # custom module
 from anomaly_detection import ADetector
-
-host, port = '127.0.0.1', '8086'
-dataset_name = 'Reaction Wheel Temperature'
-db_name = 'sensors_data'
-retention_policie = 'rp_temp'
-field_name = 'downsampled_temp'
+from .__init__ import *
 
 
 def get_data(client, retention_policie, field_name):
@@ -29,14 +24,14 @@ def get_data(client, retention_policie, field_name):
 
 # init connection
 myclient = DataFrameClient(
-    host=host,
-    port=port,
-    database=db_name,
+    host=DATABASE_HOST,
+    port=DATABASE_PORT,
+    database=DATABASE_NAME,
 )
 dataframe = get_data(
     client=myclient,
-    retention_policie=retention_policie,
-    field_name=field_name,
+    retention_policie=RETENTION_POLICIE,
+    field_name=FIELD_NAME,
 )
 
 # create anomaly detector
@@ -114,7 +109,7 @@ app.layout = html.Section([
                 id='timeseries',
                 config=dict(displayModeBar='hover'),
                 # animate = True,
-                figure=detector.stream_anomaly_plot(series_name=dataset_name),
+                figure=detector.stream_anomaly_plot(series_name=DATASET_NAME),
             ),
         ]),
     ]),
@@ -162,8 +157,8 @@ app.layout = html.Section([
 def update_graphs(index, period, params, interval):
     dataframe = get_data(
         client=myclient,
-        retention_policie=retention_policie,
-        field_name=field_name,
+        retention_policie=RETENTION_POLICIE,
+        field_name=FIELD_NAME,
     )
 
     # update model
@@ -180,7 +175,7 @@ def update_graphs(index, period, params, interval):
     detector.predict_dataframe(series=dataframe)
 
     return [
-        detector.stream_anomaly_plot(series_name=dataset_name),
+        detector.stream_anomaly_plot(series_name=DATASET_NAME),
         detector.hist_plot(),
         detector.seasonal_components_plot(),
         detector.metric_plot(),
@@ -188,4 +183,4 @@ def update_graphs(index, period, params, interval):
 
 
 if __name__ == '__main__':
-    app.run_server(host='127.0.0.1', port='8050', debug=False)
+    app.run_server(host=DASH_HOST, port=DASH_PORT, debug=False)
