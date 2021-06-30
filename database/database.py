@@ -1,8 +1,8 @@
-from .data_loader import load_data
+from data_loader import load_data
 from influxdb import InfluxDBClient
-from __init__ import *
 import sys
 sys.path.append('../')
+from __init__ import *
 
 
 def db_exists(client, db_name):
@@ -39,9 +39,9 @@ def daily_sampling(client, db, measurement, field):
 
 if __name__ == '__main__':
     # load dataset
-    wheel_temp = load_data(root=DATA_ROOT, file_name=FILE_NAME)
-
-    # create a database
+    wheel_temp = load_data(root=DATA_ROOT, file_name=FILE_NAME).asfreq(freq='5T')
+    print(len(wheel_temp))
+    wheel_temp = wheel_temp.iloc[:, :1].interpolate(method='linear')
     field_name = wheel_temp.columns[0]
 
     # create a client
@@ -78,7 +78,7 @@ if __name__ == '__main__':
         myclient.write_points(
             points=json_insert,
             retention_policy=RETENTION_POLICIE,
-            batch_size=7200,
+            batch_size=BATCH_SIZE,
         )
         myclient.query(f'''
             SELECT mean("{field_name}") AS "values"

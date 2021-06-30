@@ -9,7 +9,7 @@ from influxdb import DataFrameClient
 
 # custom module
 from anomaly_detection import ADetector
-from .__init__ import *
+from __init__ import *
 
 
 def get_data(client, retention_policie, field_name):
@@ -35,12 +35,12 @@ dataframe = get_data(
 )
 
 # create anomaly detector
-detector = ADetector(name='TRW1MT (C)')
+detector = ADetector(name=TARGET_COLUMN)
 params = ['D']  # ['Y']
 detector.update_model(df=dataframe, params=params)
 
 # Start the app
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
+external_stylesheets = [CSS_FILE_PATH]
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.title = 'Anomaly Detection Dashboard'
 app.layout = html.Section([
@@ -102,7 +102,7 @@ app.layout = html.Section([
         html.Div(className='ten columns card-display', children=[
             dcc.Interval(
                 id='update_chart',
-                interval=10000,
+                interval=9000,
                 n_intervals=0,
             ),
             dcc.Graph(
